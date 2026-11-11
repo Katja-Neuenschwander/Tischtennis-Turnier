@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tischtennis-Turnier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Tischtennis-Turnier</h1>
+    <p>Jede gegen jede, auf 2 Tischen. Resultate eintragen, die Rangliste rechnet automatisch.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="setup-title">
+    <div class="setup-head">
+      <div>
+        <div class="eyebrow">Schritt 1</div>
+        <h2 id="setup-title">Spielerinnen</h2>
+      </div>
+      <div class="row">
+        <label class="field" for="count">Anzahl
+          <select id="count"></select>
+        </label>
+        <button class="primary" id="build">Spielplan erstellen</button>
+        <button class="ghost" id="clear">Resultate löschen</button>
+      </div>
+    </div>
+    <div class="setup-grid" id="names"></div>
+    <div class="confirm" id="confirm" hidden>
+      <span id="confirm-text"></span>
+      <button class="primary" id="confirm-yes">Ja, fortfahren</button>
+      <button id="confirm-no">Abbrechen</button>
+    </div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-labelledby="plan-title">
+      <div class="sched-head">
+        <div>
+          <div class="eyebrow">Schritt 2</div>
+          <h2 id="plan-title">Spielplan</h2>
+        </div>
+        <div class="progress" id="progress"></div>
+      </div>
+      <div class="bar"><span id="bar"></span></div>
+      <div class="slots" id="slots"></div>
+    </section>
+
+    <aside class="side">
+      <div class="champion open" id="champion"></div>
+      <section class="panel" aria-labelledby="rank-title">
+        <div class="eyebrow">Live</div>
+        <h2 id="rank-title" style="margin-bottom:10px">Rangliste</h2>
+        <div class="tbl-wrap"><table id="rank"></table></div>
+      </section>
+      <div class="legend">
+        <div><b>Sieg</b> 2 Punkte · <b>Unentschieden</b> 1 Punkt · <b>Niederlage</b> 0 Punkte</div>
+        <div><b>Bei Punktgleichheit:</b> zuerst direkte Begegnung, danach Differenz der erzielten zu den verlorenen Bällen.</div>
+        <div><b>DB</b> = durch direkte Begegnung entschieden · <b>Diff</b> = durch Balldifferenz entschieden</div>
+      </div>
+    </aside>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
