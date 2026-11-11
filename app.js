@@ -1,6 +1,7 @@
 const KEY = "tt-turnier-v1";
-const MIN = 3, MAX = 8;
+const MIN = 3, MAX = 8, TMIN = 1, TMAX = 5;
 let state = load() || { count: 8, names: Array.from({length: MAX}, (_, i) => "Spielerin " + (i + 1)), results: {} };
+if (!state.tables) state.tables = 2;
 let pending = null;
 
 function load(){ try { return JSON.parse(localStorage.getItem(KEY)); } catch(e){ return null; } }
@@ -10,8 +11,49 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 const nm = i => (state.names[i] || "").trim() || "Spielerin " + (i + 1);
 const key = (a, b) => a < b ? a + "-" + b : b + "-" + a;
 
-/* Rundenturnier nach der Kreismethode, danach in Durchgänge zu je 2 Spielen verteilt */
-function buildSchedule(n){
+/* Pseudozufall mit festem Startwert, damit derselbe Spielplan bei jedem Laden gleich aussieht */
+function rng(seed){ return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }; }
+
+/* Rundenturnier nach der Kreismethode, danach in Durchgänge mit bis zu T Spielen verteilt.
+   Mehrere Varianten werden durchgerechnet; gewählt wird die mit den wenigsten Durchgängen
+   und danach den wenigsten Spielen direkt hintereinander. */
+function buildSchedule(n, T){
+  const pairs = roundRobin(n);
+  let best = null;
+  for (let attempt = 0; attempt < 150; attempt++){
+    const rnd = rng(attempt * 7919 + n * 31 + T);
+    const s = fillSlots(pairs, n, T, attempt === 0 ? () => 0 : rnd);
+    if (!best || s.slots.length < best.slots.length || (s.slots.length === best.slots.length && s.b2b < best.b2b)) best = s;
+  }
+  return best.slots;
+}
+
+function fillSlots(pairs, n, T, rnd){
+  const left = pairs.slice(), slots = [], waited = Array(n).fill(0);
+  let prev = [], b2b = 0;
+  while (left.length){
+    const slot = [], busy = new Set();
+    while (slot.length < T){
+      let bi = -1, bs = Infinity;
+      left.forEach((mt, i) => {
+        if (busy.has(mt[0]) || busy.has(mt[1])) return;
+        const back = (prev.includes(mt[0]) ? 1 : 0) + (prev.includes(mt[1]) ? 1 : 0);
+        const score = back * 10 - waited[mt[0]] - waited[mt[1]] + rnd() * 0.9;
+        if (score < bs){ bs = score; bi = i; }
+      });
+      if (bi === -1) break;
+      const mt = left.splice(bi, 1)[0];
+      slot.push(mt); busy.add(mt[0]); busy.add(mt[1]);
+      if (prev.includes(mt[0])) b2b++;
+      if (prev.includes(mt[1])) b2b++;
+    }
+    for (let p = 0; p < n; p++) waited[p] = busy.has(p) ? 0 : waited[p] + 1;
+    slots.push(slot); prev = slot.flat();
+  }
+  return { slots, b2b };
+}
+
+function roundRobin(n){
   let ids = Array.from({length: n}, (_, i) => i);
   if (n % 2) ids.push(-1);
   const m = ids.length, matches = [];
@@ -22,21 +64,7 @@ function buildSchedule(n){
     }
     ids = [ids[0], ids[m - 1], ...ids.slice(1, m - 1)];
   }
-  const slots = []; let prev = [];
-  const overlap = (mt, set) => mt.filter(p => set.includes(p)).length;
-  while (matches.length){
-    let best = 0;
-    matches.forEach((mt, i) => { if (overlap(mt, prev) < overlap(matches[best], prev)) best = i; });
-    const first = matches.splice(best, 1)[0], slot = [first];
-    let idx = -1;
-    matches.forEach((mt, i) => {
-      if (overlap(mt, first)) return;
-      if (idx === -1 || overlap(mt, prev) < overlap(matches[idx], prev)) idx = i;
-    });
-    if (idx !== -1) slot.push(matches.splice(idx, 1)[0]);
-    slots.push(slot); prev = slot.flat();
-  }
-  return slots;
+  return matches;
 }
 
 function getRes(a, b){
@@ -76,12 +104,17 @@ function standings(){
 
 function renderSetup(){
   $("count").innerHTML = Array.from({length: MAX - MIN + 1}, (_, k) => { const v = MIN + k; return `<option value="${v}" ${v === state.count ? "selected" : ""}>${v} Spielerinnen</option>`; }).join("");
+  $("tables").innerHTML = Array.from({length: TMAX - TMIN + 1}, (_, k) => { const v = TMIN + k; return `<option value="${v}" ${v === state.tables ? "selected" : ""}>${v} ${v === 1 ? "Tisch" : "Tische"}</option>`; }).join("");
+  const used = Math.min(state.tables, Math.floor(state.count / 2));
+  $("sub").textContent = `Jede gegen jede, auf ${state.tables} ${state.tables === 1 ? "Tisch" : "Tischen"}. Resultate eintragen, die Rangliste rechnet automatisch.`;
+  $("tables-note").textContent = used < state.tables ? `Mit ${state.count} Spielerinnen können höchstens ${used} ${used === 1 ? "Tisch" : "Tische"} gleichzeitig bespielt werden.` : "";
+  $("tables-note").hidden = used >= state.tables;
   $("names").innerHTML = Array.from({length: state.count}, (_, i) =>
     `<label class="field" for="n${i}">Spielerin ${i + 1}<input type="text" id="n${i}" data-i="${i}" value="${esc(state.names[i] || "")}" maxlength="30" autocomplete="off"></label>`).join("");
 }
 
 function renderSchedule(){
-  const n = state.count, slots = buildSchedule(n);
+  const n = state.count, slots = buildSchedule(n, state.tables);
   $("slots").innerHTML = slots.map((slot, si) => {
     const playing = slot.flat();
     const rest = Array.from({length: n}, (_, i) => i).filter(i => !playing.includes(i));
@@ -152,6 +185,9 @@ $("count").addEventListener("change", e => {
   const apply = () => { state.count = v; state.results = {}; save(); renderAll(); };
   if (hasResults()) { e.target.value = state.count; ask(`Auf ${v} Spielerinnen wechseln? Alle eingetragenen Resultate werden gelöscht.`, apply); }
   else apply();
+});
+$("tables").addEventListener("change", e => {
+  state.tables = +e.target.value; save(); renderAll();
 });
 $("build").addEventListener("click", () => {
   const apply = () => { state.results = {}; save(); renderAll(); };

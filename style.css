@@ -76,3 +76,4 @@ tr.lead td{background:color-mix(in srgb,var(--win) 10%,transparent)}
 .legend b{color:var(--fg)}
 @media (prefers-reduced-motion:reduce){.bar>span{transition:none}}
 body{margin:0}
+.note{margin:12px 0 0;padding:8px 12px;border-radius:8px;background:var(--draw-soft);color:var(--fg);font-size:14px}

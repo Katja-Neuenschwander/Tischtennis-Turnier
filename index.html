@@ -12,7 +12,7 @@
 <div class="wrap">
   <header>
     <h1>Tischtennis-Turnier</h1>
-    <p>Jede gegen jede, auf 2 Tischen. Resultate eintragen, die Rangliste rechnet automatisch.</p>
+    <p id="sub">Jede gegen jede, auf 2 Tischen. Resultate eintragen, die Rangliste rechnet automatisch.</p>
   </header>
 
   <section class="panel" aria-labelledby="setup-title">
@@ -25,10 +25,14 @@
         <label class="field" for="count">Anzahl
           <select id="count"></select>
         </label>
+        <label class="field" for="tables">Tische
+          <select id="tables"></select>
+        </label>
         <button class="primary" id="build">Spielplan erstellen</button>
         <button class="ghost" id="clear">Resultate löschen</button>
       </div>
     </div>
+    <p class="note" id="tables-note" hidden></p>
     <div class="setup-grid" id="names"></div>
     <div class="confirm" id="confirm" hidden>
       <span id="confirm-text"></span>
